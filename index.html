@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>기술 Issue 대응현황 Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#16202A;
+    --steel:#2C4A6E;
+    --steel-light:#3E6591;
+    --gray:#7C8B99;
+    --gray-light:#DCE1E6;
+    --bg:#F2F3EF;
+    --card:#FFFFFF;
+    --line:#D7DBDD;
+    --orange:#D9622B;
+    --orange-bg:#FBEBE1;
+    --green:#3F7D5C;
+    --green-bg:#E7F1EC;
+    --amber:#B8862B;
+    --amber-bg:#FBF2E0;
+    --blue-bg:#E7EDF4;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 32px 32px;
+    background-attachment:fixed;
+    font-family:'IBM Plex Sans KR', sans-serif;
+    color:var(--ink);
+  }
+  .wrap{max-width:1360px;margin:0 auto;padding:28px 24px 80px;}
+
+  header{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    border-bottom:3px solid var(--ink);
+    padding-bottom:16px;margin-bottom:24px;
+    flex-wrap:wrap;gap:12px;
+  }
+  .title-block .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;letter-spacing:.12em;color:var(--steel);
+    text-transform:uppercase;margin-bottom:4px;
+  }
+  h1{
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    font-size:34px;
+    margin:0;
+    letter-spacing:.01em;
+    color:var(--ink);
+  }
+  .subtitle{color:var(--gray);font-size:14px;margin-top:4px;}
+  #lastSaved{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gray);text-align:right;}
+
+  .summary{
+    display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px;
+  }
+  .stat{
+    background:var(--card);border:1px solid var(--line);border-radius:2px;
+    padding:14px 16px;position:relative;overflow:hidden;
+  }
+  .stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--steel);}
+  .stat.orange::before{background:var(--orange);}
+  .stat.green::before{background:var(--green);}
+  .stat.amber::before{background:var(--amber);}
+  .stat.ink::before{background:var(--ink);}
+  .stat .num{font-family:'Oswald',sans-serif;font-size:30px;font-weight:600;line-height:1;}
+  .stat .lbl{font-size:12px;color:var(--gray);margin-top:6px;}
+
+  .toolbar{
+    display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+    background:var(--card);border:1px solid var(--line);
+    padding:14px 16px;margin-bottom:18px;border-radius:2px;
+  }
+  select,input[type=text],input[type=search],input[type=date]{
+    font-family:'IBM Plex Sans KR',sans-serif;
+    border:1px solid var(--line);background:#fff;
+    padding:8px 10px;font-size:13px;border-radius:2px;color:var(--ink);
+  }
+  select:focus,input:focus,textarea:focus{outline:2px solid var(--steel-light);outline-offset:1px;}
+  .toolbar input[type=search]{flex:1;min-width:160px;}
+  .btn{
+    font-family:'IBM Plex Sans KR',sans-serif;
+    font-weight:600;font-size:13px;
+    border:1px solid var(--ink);background:var(--ink);color:#fff;
+    padding:9px 16px;border-radius:2px;cursor:pointer;
+  }
+  .btn:hover{background:#25344A;}
+  .btn.secondary{background:#fff;color:var(--ink);}
+  .btn.secondary:hover{background:var(--gray-light);}
+  .btn.danger{background:#fff;color:var(--orange);border-color:var(--orange);}
+  .btn.danger:hover{background:var(--orange-bg);}
+  .spacer{flex:1;}
+  .toolbar .lbl-inline{font-size:11px;color:var(--gray);font-family:'IBM Plex Mono',monospace;}
+
+  /* ---- List / table ---- */
+  .list-wrap{background:var(--card);border:1px solid var(--line);border-radius:2px;overflow-x:auto;}
+  .list-inner{min-width:1080px;}
+  .list-head, .list-row-main{
+    display:grid;
+    grid-template-columns: 34px 1fr 90px 100px 88px 96px 160px 160px 70px 24px;
+    align-items:center;
+    gap:8px;
+    padding:10px 14px;
+  }
+  .list-head{
+    background:var(--ink);color:#fff;
+    font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;
+    position:sticky;top:0;z-index:2;
+  }
+  .list-body .item{border-top:1px solid var(--line);}
+  .list-row-main{cursor:pointer;font-size:13px;}
+  .list-row-main:hover{background:#FAFBF9;}
+  .item.done .list-row-main .col-title{color:var(--gray);text-decoration:line-through;}
+  .col-check{display:flex;align-items:center;justify-content:center;}
+  .col-check input{width:16px;height:16px;accent-color:var(--green);cursor:pointer;}
+  .col-title{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .col-proj{font-size:12px;color:var(--gray);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .col-sched{font-family:'IBM Plex Mono',monospace;font-size:10.5px;line-height:1.5;color:#3A4650;}
+  .col-sched .lab{color:var(--gray);}
+  .col-owner{font-size:12px;color:var(--gray);}
+  .chevron{color:var(--gray);font-size:11px;text-align:right;transition:transform .15s ease;}
+  .item.open .chevron{transform:rotate(90deg);}
+
+  .badge{font-family:'IBM Plex Mono',monospace;font-size:10.5px;padding:3px 8px;border-radius:12px;white-space:nowrap;display:inline-block;}
+  .badge.status-발생{background:var(--orange-bg);color:var(--orange);}
+  .badge.status-검토중{background:var(--amber-bg);color:var(--amber);}
+  .badge.status-대응중{background:var(--blue-bg);color:var(--steel);}
+  .badge.status-보류{background:#EDEDED;color:var(--gray);}
+  .badge.status-완료{background:var(--green-bg);color:var(--green);}
+  .badge.prio{border:1px solid currentColor;background:none;}
+
+  .item-detail{display:none;padding:14px 16px 18px 58px;border-top:1px dashed var(--line);background:#FBFBF9;}
+  .item.open .item-detail{display:block;}
+  .issue-desc{font-size:13.5px;line-height:1.6;color:#2A3540;margin-bottom:12px;white-space:pre-wrap;}
+  .sched-detail{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px;max-width:520px;}
+  .sched-box{border:1px solid var(--line);border-radius:2px;padding:8px 10px;background:#fff;}
+  .sched-box .sb-title{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--gray);text-transform:uppercase;margin-bottom:4px;}
+  .sched-box .sb-val{font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .issue-actions{display:flex;gap:8px;margin-bottom:12px;}
+  .history{border-left:2px solid var(--line);padding-left:14px;margin-left:2px;}
+  .hist-item{position:relative;margin-bottom:10px;font-size:12.5px;}
+  .hist-item::before{content:"";position:absolute;left:-18px;top:5px;width:7px;height:7px;border-radius:50%;background:var(--steel);}
+  .hist-date{font-family:'IBM Plex Mono',monospace;color:var(--gray);margin-right:8px;}
+  .hist-note{color:var(--ink);}
+
+  .empty{text-align:center;padding:60px 20px;color:var(--gray);border:1px dashed var(--line);background:var(--card);border-radius:2px;}
+  .empty b{color:var(--ink);}
+
+  .overlay{display:none;position:fixed;inset:0;background:rgba(22,32,42,.55);align-items:center;justify-content:center;z-index:50;padding:20px;}
+  .overlay.open{display:flex;}
+  .modal{background:#fff;width:100%;max-width:600px;max-height:88vh;overflow-y:auto;border-radius:3px;padding:24px 26px;border-top:4px solid var(--ink);}
+  .modal h3{font-family:'Oswald',sans-serif;font-size:20px;margin:0 0 18px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12px;font-weight:600;color:var(--gray);margin-bottom:5px;letter-spacing:.02em;}
+  .field select,.field input,.field textarea{width:100%;}
+  .field textarea{font-family:'IBM Plex Sans KR',sans-serif;resize:vertical;min-height:70px;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:2px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .fieldset{border:1px solid var(--line);border-radius:2px;padding:12px 14px 4px;margin-bottom:14px;}
+  .fieldset legend{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--steel);padding:0 6px;letter-spacing:.03em;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;}
+  .newproj-toggle{font-size:12px;color:var(--steel);cursor:pointer;text-decoration:underline;margin-top:4px;display:inline-block;}
+  .check-inline{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+  .check-inline input{width:16px;height:16px;accent-color:var(--green);}
+  .check-inline label{font-size:13px;font-weight:600;color:var(--ink);margin:0;}
+
+  footer{text-align:center;color:var(--gray);font-size:11px;margin-top:40px;font-family:'IBM Plex Mono',monospace;}
+
+  @media (max-width:900px){ .summary{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:600px){ .row2{grid-template-columns:1fr;} h1{font-size:26px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="title-block">
+      <div class="eyebrow">ENG TEAM · 해외건축사업본부</div>
+      <h1>기술 Issue 대응현황 Dashboard</h1>
+      <div class="subtitle">입찰 · 수행 프로젝트별 주요 기술 Issue 및 대응 현황 관리</div>
+    </div>
+    <div id="lastSaved">저장 대기중…</div>
+  </header>
+
+  <div class="summary" id="summaryCards"></div>
+
+  <div class="toolbar">
+    <select id="filterProject"><option value="">전체 프로젝트</option></select>
+    <select id="filterGroup">
+      <option value="">전체 그룹</option>
+      <option>기술ENG</option><option>구조ENG</option><option>건축설계ENG</option><option>건축BIM</option>
+    </select>
+    <select id="filterStatus">
+      <option value="">전체 상태</option>
+      <option>발생</option><option>검토중</option><option>대응중</option><option>보류</option>
+    </select>
+    <select id="filterDone">
+      <option value="">완료여부 전체</option>
+      <option value="open">미완료</option>
+      <option value="done">완료</option>
+    </select>
+    <input type="search" id="searchBox" placeholder="Issue 제목/내용 검색…">
+    <div class="spacer"></div>
+    <button class="btn secondary" id="btnNewProject">+ 프로젝트</button>
+    <button class="btn" id="btnNewIssue">+ Issue 등록</button>
+  </div>
+
+  <div class="list-wrap">
+    <div class="list-inner">
+      <div class="list-head">
+        <div class="col-check">완료</div>
+        <div>Issue / 프로젝트</div>
+        <div>그룹</div>
+        <div>우선순위</div>
+        <div>상태</div>
+        <div>담당자</div>
+        <div>계획 (착수~완료)</div>
+        <div>실제 (착수~완료)</div>
+        <div>등록일</div>
+        <div></div>
+      </div>
+      <div class="list-body" id="board"></div>
+    </div>
+  </div>
+
+  <footer>데이터는 지금 이 브라우저(기기)에만 저장됩니다. 다른 기기·브라우저에서는 별도로 입력해야 합니다 · Dashboard v2</footer>
+</div>
+
+<!-- Project Modal -->
+<div class="overlay" id="projectOverlay">
+  <div class="modal">
+    <h3 id="projectModalTitle">프로젝트 등록</h3>
+    <input type="hidden" id="projectId">
+    <div class="field">
+      <label>프로젝트명</label>
+      <input type="text" id="projectName" placeholder="예: 카타르 루사일 복합개발 A동">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>구분</label>
+        <select id="projectStage"><option value="입찰">입찰</option><option value="수행">수행</option></select>
+      </div>
+      <div class="field">
+        <label>국가/지역 (선택)</label>
+        <input type="text" id="projectRegion" placeholder="예: 카타르">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn danger" id="btnDeleteProject" style="display:none;margin-right:auto;">프로젝트 삭제</button>
+      <button class="btn secondary" onclick="closeModal('projectOverlay')">취소</button>
+      <button class="btn" id="btnSaveProject">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Issue Modal -->
+<div class="overlay" id="issueOverlay">
+  <div class="modal">
+    <h3 id="issueModalTitle">Issue 등록</h3>
+    <input type="hidden" id="issueId">
+    <div class="field">
+      <label>프로젝트</label>
+      <select id="issueProject"></select>
+      <span class="newproj-toggle" id="quickAddProject">+ 새 프로젝트 바로 추가</span>
+    </div>
+    <div class="field">
+      <label>Issue 제목</label>
+      <input type="text" id="issueTitle" placeholder="예: Curtain Wall 자파 하자 관련 재시험 요구">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>담당 그룹</label>
+        <select id="issueGroup">
+          <option>기술ENG</option><option>구조ENG</option><option>건축설계ENG</option><option>건축BIM</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>우선순위</label>
+        <select id="issuePriority"><option value="high">상</option><option value="mid" selected>중</option><option value="low">하</option></select>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>상태</label>
+        <select id="issueStatus">
+          <option>발생</option><option>검토중</option><option>대응중</option><option>보류</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>담당자</label>
+        <input type="text" id="issueOwner" placeholder="이름">
+      </div>
+    </div>
+
+    <div class="check-inline">
+      <input type="checkbox" id="issueDone">
+      <label for="issueDone">완료 처리</label>
+    </div>
+
+    <fieldset class="fieldset">
+      <legend>일정 — 계획</legend>
+      <div class="row2">
+        <div class="field"><label>착수일 (계획)</label><input type="date" id="planStart"></div>
+        <div class="field"><label>완료일 (계획)</label><input type="date" id="planEnd"></div>
+      </div>
+    </fieldset>
+    <fieldset class="fieldset">
+      <legend>일정 — 실제</legend>
+      <div class="row2">
+        <div class="field"><label>착수일 (실제)</label><input type="date" id="actualStart"></div>
+        <div class="field"><label>완료일 (실제)</label><input type="date" id="actualEnd"></div>
+      </div>
+    </fieldset>
+
+    <div class="field">
+      <label>Issue 상세 내용</label>
+      <textarea id="issueDesc" placeholder="배경, 쟁점, 리스크 등을 기록"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn danger" id="btnDeleteIssue" style="display:none;margin-right:auto;">삭제</button>
+      <button class="btn secondary" onclick="closeModal('issueOverlay')">취소</button>
+      <button class="btn" id="btnSaveIssue">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Update history modal -->
+<div class="overlay" id="histOverlay">
+  <div class="modal" style="max-width:460px;">
+    <h3>대응 현황 업데이트</h3>
+    <input type="hidden" id="histIssueId">
+    <div class="field">
+      <label>상태 변경 (선택)</label>
+      <select id="histStatus">
+        <option value="">— 상태 유지 —</option>
+        <option>발생</option><option>검토중</option><option>대응중</option><option>보류</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>업데이트 내용</label>
+      <textarea id="histNote" placeholder="예: 발주처와 재시험 범위 협의 완료, 결과 대기중"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="closeModal('histOverlay')">취소</button>
+      <button class="btn" id="btnSaveHist">기록 추가</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let DATA = { projects: [], issues: [] };
+const STORAGE_KEY = 'eng-dashboard-data';
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+async function loadData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){ DATA = JSON.parse(raw); }
+  }catch(e){ /* no data yet */ }
+  // migrate old records missing new fields
+  DATA.issues.forEach(i=>{
+    if(i.done===undefined) i.done = (i.status==='대응완료');
+    if(i.status==='대응완료') i.status='대응중';
+    i.planStart = i.planStart || '';
+    i.planEnd = i.planEnd || '';
+    i.actualStart = i.actualStart || '';
+    i.actualEnd = i.actualEnd || '';
+    i.history = i.history || [];
+  });
+  render();
+}
+async function saveData(){
+  const el = document.getElementById('lastSaved');
+  el.textContent = '저장 중…';
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+    el.textContent = '마지막 저장: ' + new Date().toLocaleTimeString('ko-KR') + ' (이 브라우저에 저장됨)';
+  }catch(e){
+    el.textContent = '저장 실패 — 다시 시도해주세요';
+    console.error(e);
+  }
+}
+
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+
+/* ---------- Project modal ---------- */
+document.getElementById('btnNewProject').onclick = () => {
+  document.getElementById('projectModalTitle').textContent = '프로젝트 등록';
+  document.getElementById('projectId').value = '';
+  document.getElementById('projectName').value = '';
+  document.getElementById('projectStage').value = '입찰';
+  document.getElementById('projectRegion').value = '';
+  document.getElementById('btnDeleteProject').style.display = 'none';
+  openModal('projectOverlay');
+};
+
+function editProject(id){
+  const p = DATA.projects.find(x=>x.id===id);
+  if(!p) return;
+  document.getElementById('projectModalTitle').textContent = '프로젝트 수정';
+  document.getElementById('projectId').value = p.id;
+  document.getElementById('projectName').value = p.name;
+  document.getElementById('projectStage').value = p.stage;
+  document.getElementById('projectRegion').value = p.region || '';
+  document.getElementById('btnDeleteProject').style.display = 'inline-block';
+  openModal('projectOverlay');
+}
+
+document.getElementById('btnSaveProject').onclick = async () => {
+  const id = document.getElementById('projectId').value;
+  const name = document.getElementById('projectName').value.trim();
+  if(!name){ alert('프로젝트명을 입력해주세요.'); return; }
+  const stage = document.getElementById('projectStage').value;
+  const region = document.getElementById('projectRegion').value.trim();
+  if(id){
+    const p = DATA.projects.find(x=>x.id===id);
+    Object.assign(p, {name, stage, region});
+  } else {
+    DATA.projects.push({id: uid(), name, stage, region});
+  }
+  await saveData();
+  closeModal('projectOverlay');
+  render();
+};
+
+document.getElementById('btnDeleteProject').onclick = async () => {
+  const id = document.getElementById('projectId').value;
+  const proj = DATA.projects.find(x=>x.id===id);
+  const issueCount = DATA.issues.filter(i=>i.projectId===id).length;
+  const msg = issueCount>0
+    ? `"${proj.name}" 프로젝트와 연결된 Issue ${issueCount}건이 함께 삭제됩니다. 계속하시겠습니까?`
+    : `"${proj.name}" 프로젝트를 삭제하시겠습니까?`;
+  if(!confirm(msg)) return;
+  DATA.projects = DATA.projects.filter(x=>x.id!==id);
+  DATA.issues = DATA.issues.filter(i=>i.projectId!==id);
+  await saveData();
+  closeModal('projectOverlay');
+  render();
+};
+
+/* ---------- Issue modal ---------- */
+function populateIssueProjectSelect(selectedId){
+  const sel = document.getElementById('issueProject');
+  sel.innerHTML = DATA.projects.map(p=>`<option value="${p.id}">[${p.stage}] ${escapeHtml(p.name)}</option>`).join('');
+  if(selectedId) sel.value = selectedId;
+}
+
+document.getElementById('btnNewIssue').onclick = () => {
+  if(DATA.projects.length===0){
+    alert('먼저 프로젝트를 등록해주세요.');
+    document.getElementById('btnNewProject').click();
+    return;
+  }
+  document.getElementById('issueModalTitle').textContent = 'Issue 등록';
+  document.getElementById('issueId').value = '';
+  populateIssueProjectSelect();
+  document.getElementById('issueTitle').value = '';
+  document.getElementById('issueGroup').value = '기술ENG';
+  document.getElementById('issuePriority').value = 'mid';
+  document.getElementById('issueStatus').value = '발생';
+  document.getElementById('issueOwner').value = '';
+  document.getElementById('issueDesc').value = '';
+  document.getElementById('issueDone').checked = false;
+  document.getElementById('planStart').value = '';
+  document.getElementById('planEnd').value = '';
+  document.getElementById('actualStart').value = '';
+  document.getElementById('actualEnd').value = '';
+  document.getElementById('btnDeleteIssue').style.display = 'none';
+  openModal('issueOverlay');
+};
+
+document.getElementById('quickAddProject').onclick = () => {
+  closeModal('issueOverlay');
+  document.getElementById('btnNewProject').click();
+};
+
+function editIssue(id){
+  const i = DATA.issues.find(x=>x.id===id);
+  if(!i) return;
+  document.getElementById('issueModalTitle').textContent = 'Issue 수정';
+  document.getElementById('issueId').value = i.id;
+  populateIssueProjectSelect(i.projectId);
+  document.getElementById('issueTitle').value = i.title;
+  document.getElementById('issueGroup').value = i.group;
+  document.getElementById('issuePriority').value = i.priority;
+  document.getElementById('issueStatus').value = i.status;
+  document.getElementById('issueOwner').value = i.owner || '';
+  document.getElementById('issueDesc').value = i.desc || '';
+  document.getElementById('issueDone').checked = !!i.done;
+  document.getElementById('planStart').value = i.planStart || '';
+  document.getElementById('planEnd').value = i.planEnd || '';
+  document.getElementById('actualStart').value = i.actualStart || '';
+  document.getElementById('actualEnd').value = i.actualEnd || '';
+  document.getElementById('btnDeleteIssue').style.display = 'inline-block';
+  openModal('issueOverlay');
+}
+
+document.getElementById('btnSaveIssue').onclick = async () => {
+  const id = document.getElementById('issueId').value;
+  const title = document.getElementById('issueTitle').value.trim();
+  if(!title){ alert('Issue 제목을 입력해주세요.'); return; }
+  const projectId = document.getElementById('issueProject').value;
+  const group = document.getElementById('issueGroup').value;
+  const priority = document.getElementById('issuePriority').value;
+  const status = document.getElementById('issueStatus').value;
+  const owner = document.getElementById('issueOwner').value.trim();
+  const desc = document.getElementById('issueDesc').value.trim();
+  const done = document.getElementById('issueDone').checked;
+  const planStart = document.getElementById('planStart').value;
+  const planEnd = document.getElementById('planEnd').value;
+  const actualStart = document.getElementById('actualStart').value;
+  let actualEnd = document.getElementById('actualEnd').value;
+  if(done && !actualEnd) actualEnd = todayStr();
+
+  if(id){
+    const i = DATA.issues.find(x=>x.id===id);
+    const statusChanged = i.status !== status;
+    const doneChanged = i.done !== done;
+    Object.assign(i, {projectId, title, group, priority, status, owner, desc, done, planStart, planEnd, actualStart, actualEnd});
+    if(doneChanged){
+      i.history.unshift({date: todayStr(), note: done ? '완료 처리' : '완료 취소', status});
+    } else if(statusChanged){
+      i.history.unshift({date: todayStr(), note: `상태 변경: ${status}`, status});
+    }
+  } else {
+    DATA.issues.push({
+      id: uid(), projectId, title, group, priority, status, owner, desc, done,
+      planStart, planEnd, actualStart, actualEnd,
+      createdDate: todayStr(),
+      history: [{date: todayStr(), note: '최초 등록', status}]
+    });
+  }
+  await saveData();
+  closeModal('issueOverlay');
+  render();
+};
+
+document.getElementById('btnDeleteIssue').onclick = async () => {
+  const id = document.getElementById('issueId').value;
+  if(!confirm('이 Issue를 삭제하시겠습니까?')) return;
+  DATA.issues = DATA.issues.filter(x=>x.id!==id);
+  await saveData();
+  closeModal('issueOverlay');
+  render();
+};
+
+/* quick complete toggle from the list checkbox */
+async function toggleDone(id, checked){
+  const i = DATA.issues.find(x=>x.id===id);
+  if(!i) return;
+  i.done = checked;
+  if(checked && !i.actualEnd) i.actualEnd = todayStr();
+  i.history.unshift({date: todayStr(), note: checked ? '완료 처리' : '완료 취소', status: i.status});
+  await saveData();
+  render();
+}
+
+/* ---------- History modal ---------- */
+function openHistModal(issueId){
+  document.getElementById('histIssueId').value = issueId;
+  document.getElementById('histStatus').value = '';
+  document.getElementById('histNote').value = '';
+  openModal('histOverlay');
+}
+document.getElementById('btnSaveHist').onclick = async () => {
+  const id = document.getElementById('histIssueId').value;
+  const note = document.getElementById('histNote').value.trim();
+  const newStatus = document.getElementById('histStatus').value;
+  if(!note){ alert('업데이트 내용을 입력해주세요.'); return; }
+  const i = DATA.issues.find(x=>x.id===id);
+  i.history.unshift({date: todayStr(), note, status: newStatus || i.status});
+  if(newStatus) i.status = newStatus;
+  await saveData();
+  closeModal('histOverlay');
+  render();
+};
+
+/* ---------- Rendering ---------- */
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+const prioLabel = {high:'상', mid:'중', low:'하'};
+const prioColor = {high:'var(--orange)', mid:'var(--amber)', low:'var(--steel)'};
+
+function currentFilters(){
+  return {
+    project: document.getElementById('filterProject').value,
+    group: document.getElementById('filterGroup').value,
+    status: document.getElementById('filterStatus').value,
+    done: document.getElementById('filterDone').value,
+    q: document.getElementById('searchBox').value.trim().toLowerCase()
+  };
+}
+
+function renderSummary(){
+  const total = DATA.issues.length;
+  const doneCount = DATA.issues.filter(i=>i.done).length;
+  const byStatus = s => DATA.issues.filter(i=>!i.done && i.status===s).length;
+  const cards = [
+    {label:'전체 Issue', num: total, cls:'ink'},
+    {label:'대응중', num: byStatus('대응중'), cls:''},
+    {label:'검토중', num: byStatus('검토중'), cls:'amber'},
+    {label:'완료', num: doneCount, cls:'green'},
+    {label:'발생 · 보류', num: byStatus('발생')+byStatus('보류'), cls:'orange'},
+  ];
+  document.getElementById('summaryCards').innerHTML = cards.map(c=>`
+    <div class="stat ${c.cls}"><div class="num">${c.num}</div><div class="lbl">${c.label}</div></div>`).join('');
+}
+
+function renderFilterOptions(){
+  const sel = document.getElementById('filterProject');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">전체 프로젝트</option>' +
+    DATA.projects.map(p=>`<option value="${p.id}">[${p.stage}] ${escapeHtml(p.name)}</option>`).join('');
+  sel.value = cur;
+}
+
+function fmtRange(a,b){
+  if(!a && !b) return '<span class="lab">미입력</span>';
+  return `${a||'—'} ~ ${b||'—'}`;
+}
+
+const openIssueIds = new Set();
+
+function render(){
+  renderSummary();
+  renderFilterOptions();
+  const f = currentFilters();
+  const board = document.getElementById('board');
+  const projMap = {};
+  DATA.projects.forEach(p=>projMap[p.id]=p);
+
+  let issues = DATA.issues.slice();
+  if(f.project) issues = issues.filter(i=>i.projectId===f.project);
+  if(f.group) issues = issues.filter(i=>i.group===f.group);
+  if(f.status) issues = issues.filter(i=>i.status===f.status);
+  if(f.done==='open') issues = issues.filter(i=>!i.done);
+  if(f.done==='done') issues = issues.filter(i=>i.done);
+  if(f.q) issues = issues.filter(i=> (i.title+' '+(i.desc||'')).toLowerCase().includes(f.q));
+
+  // sort: not done first, then by priority, then by planEnd
+  const prioRank = {high:0, mid:1, low:2};
+  issues.sort((a,b)=>{
+    if(a.done!==b.done) return a.done?1:-1;
+    if(prioRank[a.priority]!==prioRank[b.priority]) return prioRank[a.priority]-prioRank[b.priority];
+    return (a.planEnd||'9999').localeCompare(b.planEnd||'9999');
+  });
+
+  if(DATA.projects.length===0){
+    board.innerHTML = `<div class="empty"><b>등록된 프로젝트가 없습니다.</b><br>상단의 「+ 프로젝트」 버튼으로 입찰/수행 프로젝트를 먼저 등록해주세요.</div>`;
+    return;
+  }
+  if(issues.length===0){
+    board.innerHTML = `<div class="empty">조건에 맞는 Issue가 없습니다. 필터를 조정해주세요.</div>`;
+    return;
+  }
+
+  board.innerHTML = issues.map(i=>{
+    const p = projMap[i.projectId];
+    const projLabel = p ? `[${p.stage}] ${escapeHtml(p.name)}` : '(삭제된 프로젝트)';
+    const isOpen = openIssueIds.has(i.id);
+    const statusBadge = i.done
+      ? `<span class="badge status-완료">완료</span>`
+      : `<span class="badge status-${i.status}">${i.status}</span>`;
+    return `
+    <div class="item ${isOpen?'open':''} ${i.done?'done':''}" data-id="${i.id}">
+      <div class="list-row-main" onclick="toggleIssue('${i.id}')">
+        <div class="col-check" onclick="event.stopPropagation()">
+          <input type="checkbox" ${i.done?'checked':''} onchange="toggleDone('${i.id}', this.checked)">
+        </div>
+        <div style="min-width:0;">
+          <div class="col-title">${escapeHtml(i.title)}</div>
+          <div class="col-proj">${projLabel}</div>
+        </div>
+        <div><span class="badge">${i.group}</span></div>
+        <div><span class="badge prio" style="color:${prioColor[i.priority]}">${prioLabel[i.priority]}</span></div>
+        <div>${statusBadge}</div>
+        <div class="col-owner">${escapeHtml(i.owner)||'—'}</div>
+        <div class="col-sched">${fmtRange(i.planStart, i.planEnd)}</div>
+        <div class="col-sched">${fmtRange(i.actualStart, i.actualEnd)}</div>
+        <div class="col-owner">${i.createdDate||''}</div>
+        <div class="chevron">▶</div>
+      </div>
+      <div class="item-detail">
+        <div class="issue-desc">${escapeHtml(i.desc) || '<span style="color:var(--gray)">상세 내용 없음</span>'}</div>
+        <div class="sched-detail">
+          <div class="sched-box"><div class="sb-title">계획 일정</div><div class="sb-val">${fmtRange(i.planStart,i.planEnd)}</div></div>
+          <div class="sched-box"><div class="sb-title">실제 일정</div><div class="sb-val">${fmtRange(i.actualStart,i.actualEnd)}</div></div>
+        </div>
+        <div class="issue-actions">
+          <button class="btn secondary" onclick="event.stopPropagation();openHistModal('${i.id}')">현황 업데이트 기록</button>
+          <button class="btn secondary" onclick="event.stopPropagation();editIssue('${i.id}')">수정</button>
+        </div>
+        <div class="history">
+          ${i.history.map(h=>`<div class="hist-item"><span class="hist-date">${h.date}</span><span class="hist-note">${escapeHtml(h.note)}</span></div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleIssue(id){
+  if(openIssueIds.has(id)) openIssueIds.delete(id); else openIssueIds.add(id);
+  render();
+}
+
+['filterProject','filterGroup','filterStatus','filterDone'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', render);
+});
+document.getElementById('searchBox').addEventListener('input', render);
+
+document.querySelectorAll('.overlay').forEach(ov=>{
+  ov.addEventListener('click', e=>{ if(e.target===ov) ov.classList.remove('open'); });
+});
+
+loadData();
+</script>
+</body>
+</html>
